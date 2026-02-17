@@ -1,0 +1,17 @@
+# Dockerfile for testing that junctions survive Windows Container layer snapshots.
+#
+# The key insight: each RUN instruction creates a new container layer.
+# If PrintName is empty in the junction reparse point, the container runtime
+# will produce a broken junction when serializing/deserializing layers.
+#
+# Build with: docker build -f tests/Dockerfile.wcow .
+# The base image must match the host Windows version for process isolation.
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+COPY target/x86_64-pc-windows-msvc/release/container_layer.exe C:/container_layer.exe
+
+# Layer N: Create a junction
+RUN C:\container_layer.exe create C:\junction_target C:\junction_link
+
+# Layer N+1: Verify the junction survived the layer snapshot
+RUN C:\container_layer.exe verify C:\junction_link C:\junction_target

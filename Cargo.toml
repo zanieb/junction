@@ -55,5 +55,9 @@ features = [
     "Win32_System_Threading",
 ]
 
+[[test]]
+name = "container_layer"
+harness = false
+
 [dev-dependencies]
 tempfile = "3.21.0"

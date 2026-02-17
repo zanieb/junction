@@ -152,6 +152,31 @@ jobs:
       - run: cargo fetch
       - run: cargo clippy --all-targets --all-features -- -Dwarnings
 
+  # Test that junctions survive Windows Container (WCoW) layer snapshots.
+  # This reproduces the bug where an empty PrintName in the reparse point
+  # causes junctions to break across container layers.
+  container-layer-test:
+    runs-on: windows-2022
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          rustup set auto-self-update disable
+          rustup toolchain install stable-x86_64-pc-windows-msvc
+          rustup default stable-x86_64-pc-windows-msvc
+      - name: Build test binary with static CRT
+        run: cargo build --release --test container_layer
+        env:
+          RUSTFLAGS: -C target-feature=+crt-static
+      - name: Prepare test binary
+        shell: bash
+        run: |
+          mkdir -p target/x86_64-pc-windows-msvc/release
+          cp target/release/deps/container_layer-*.exe target/x86_64-pc-windows-msvc/release/container_layer.exe
+      - name: Build Windows container image
+        run: |
+          docker build -f tests/Dockerfile.wcow -t junction-wcow-test .
+
   # Use static analyzer Rudra <https://github.com/sslab-gatech/Rudra>.
   # FIXME: Disable for now since it's very costly to run.
   rudra:
